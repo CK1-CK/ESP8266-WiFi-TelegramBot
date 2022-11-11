@@ -1,42 +1,40 @@
-//Bibliotheken
+// Bibliotheken
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 #include <WiFi-Telegram-credentials.h>
 
-
-
 WiFiClientSecure client;
 UniversalTelegramBot bot(botToken, client);
 
-//Variable für das Licht
-const int lightPin = 14; //Am ESP8266 Pin D5
+// Variable für das Licht
+const int lightPin = 14; // Am ESP8266 Pin D5
 bool lightState = LOW;
 
-//Variable für die Anzahl der Anfragen
+// Variable für die Anzahl der Anfragen
 int numNewRequests;
 
-//Variable für den Text der Anfrage, die du sendest
+// Variable für den Text der Anfrage, die du sendest
 String text = "";
-
-//UserID des Absenders
+// UserID des Absenders
 String chat_id = "";
-
-//Name des Absenders
+// Name des Absenders
 String from_name = "";
-
-//Variable für die Willkommensnachricht
+// Variable für die Willkommensnachricht
 String welcome = "";
 
-//Funktion fürs Verarbeiten neuer Anfragen
-void handleNewRequests(int numNewRequests) {
+// Funktion fürs Verarbeiten neuer Anfragen
+void handleNewRequests(int numNewRequests)
+{
 
-  for (int i = 0; i < numNewRequests; i++) { //loopt durch die neuen Anfragen
+  for (int i = 0; i < numNewRequests; i++)
+  { // loopt durch die neuen Anfragen
 
-    //Checkt, ob du die Anfrage gesendet hast oder jemand anderes
+    // Checkt, ob du die Anfrage gesendet hast oder jemand anderes
     chat_id = String(bot.messages[i].chat_id);
-    if (chat_id != userID) {
+    if (chat_id != userID)
+    {
       bot.sendMessage(chat_id, "Du bist nicht autorisiert!", "");
       continue;
     }
@@ -47,40 +45,45 @@ void handleNewRequests(int numNewRequests) {
 
     from_name = bot.messages[i].from_name;
 
-    if (text == "/start") {
+    if (text == "/start")
+    {
       welcome = "Willkommen, " + from_name + ".\n";
       welcome += "Folgende Befehle kannst du verwenden: \n\n";
       welcome += "/lichtEin \n";
       welcome += "/lichtAus \n";
       welcome += "/status \n";
-      bot.sendMessage(chat_id, "http://gph.is/1Rc70ke", "");
       bot.sendMessage(chat_id, welcome, "");
     }
 
-    if (text == "/lichtEin") {
+    if (text == "/lichtEin")
+    {
       lightState = HIGH;
       digitalWrite(14, lightState);
       bot.sendMessage(chat_id, "Das Licht ist an.", "");
     }
 
-    if (text == "/lichtAus") {
+    if (text == "/lichtAus")
+    {
       lightState = LOW;
       digitalWrite(14, lightState);
       bot.sendMessage(chat_id, "Das Licht ist aus.", "");
     }
 
-    if (text == "/status") {
-      if (digitalRead(lightPin)) {
-      bot.sendMessage(chat_id, "Das Licht ist an.", "");
+    if (text == "/status")
+    {
+      if (digitalRead(lightPin))
+      {
+        bot.sendMessage(chat_id, "Das Licht ist an.", "");
       }
-      else {
+      else
+      {
         bot.sendMessage(chat_id, "Das Licht ist aus.", "");
       }
     }
   }
 }
 
-void setup() 
+void setup()
 {
 
   Serial.begin(115200);
@@ -89,13 +92,14 @@ void setup()
   pinMode(lightPin, OUTPUT);
   digitalWrite(lightPin, lightState);
 
-  //Verbindung zum WLAN
+  // Verbindung zum WLAN
   Serial.print("Verbinde mich mit: ");
   Serial.println(ssid);
 
   WiFi.begin(ssid, password);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     Serial.print(".");
     delay(300);
   }
@@ -103,13 +107,13 @@ void setup()
   Serial.println("Verbunden!");
 }
 
-
-void loop() 
+void loop()
 {
-  //checkt, ob eine neue Anfrage reinkam
+  // checkt, ob eine neue Anfrage reinkam
   int numNewRequests = bot.getUpdates(bot.last_message_received + 1);
 
-  while (numNewRequests) { //wird ausgeführt, wenn numNewRequests == 1
+  while (numNewRequests)
+  { // wird ausgeführt, wenn numNewRequests == 1
     Serial.println("Anfrage erhalten");
     handleNewRequests(numNewRequests);
     numNewRequests = bot.getUpdates(bot.last_message_received + 1);

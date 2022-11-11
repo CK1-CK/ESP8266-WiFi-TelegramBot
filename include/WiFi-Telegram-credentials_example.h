@@ -10,4 +10,4 @@ const char* password = "PASSWORT";
 #define botToken "TOKEN"  // den Bot-Token bekommst du vom Botfather)
 
 //Deine UserID
-#define userID "USERID"
+#define userID "12345678910"
