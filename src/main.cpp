@@ -8,7 +8,6 @@
 
 WiFiClientSecure client;
 UniversalTelegramBot bot(botToken, client);
-HTTPClient httpCommunicator;
 
 String url_wetter = "https://aktuell.mannheim-wetter.info/rss3.xml"; // URL Wetter-Abfrage
 
@@ -34,6 +33,45 @@ String extractValuesfromXML(String searchStringStart, String searchStringEnd, St
   int endIndex = sourceString.indexOf(searchStringEnd, startIndex);
 
   return sourceString.substring(startIndex, endIndex);
+}
+
+String GetWeatherData(String weburl)
+{
+  HTTPClient httpCommunicator;
+  String payload = "";
+  if (httpCommunicator.begin(client, weburl))
+  {
+    int httpCode = httpCommunicator.GET(); // HTTP-Code der Response speichern
+
+    if (httpCode == HTTP_CODE_OK)
+    {
+      payload = httpCommunicator.getString(); // Save Webpage Content
+
+      // Serial.println("###Wetterdaten Start###");
+      // Serial.println(payload);
+      // Serial.println("###Wetterdaten Ende###");
+
+
+      return payload;
+    }
+    else
+    {
+      // HTTP-Error
+      String error_return = httpCommunicator.errorToString(httpCode);
+      Serial.println("Http-Error: " + String(httpCode) + " " + error_return);
+
+      // bot.sendMessage(chat_id, "HTTP Error: " + String(httpCode) + " " + error_return + " Wetterdaten konnten nicht abgefragt werden \n", "");
+    }
+    httpCommunicator.end(); // Close Connection
+    Serial.println("HTTP Connection Closed.");
+  }
+  else
+  {
+    Serial.printf("HTTP-Verbindung konnte nicht hergestellt werden!");
+    // bot.sendMessage(chat_id, "HTTP-Verbindung konnte nicht hergestellt werden! \n", "");
+  }
+
+  return String(EXIT_FAILURE);
 }
 
 // Funktion fürs Verarbeiten neuer Anfragen
@@ -96,52 +134,32 @@ void handleNewRequests(int numNewRequests)
 
     if (text == "/wetter")
     {
-      String payload = "";
+
       String currentWeatherData = "Aktuelle Werte: \n";
+      String weather_data;
 
-      if (httpCommunicator.begin(client, url_wetter))
+      weather_data = GetWeatherData(url_wetter);
+
+      if (weather_data != String(EXIT_FAILURE))
       {
-        int httpCode = httpCommunicator.GET(); // HTTP-Code der Response speichern
+        // Extract WeatherValues from WebpageContent
+        //currentWeatherData += extractValuesfromXML("Temperatur:", "<", weather_data) + "\n";
+        //currentWeatherData += extractValuesfromXML("Taupunkt", ";", weather_data) + "\n";
+        currentWeatherData += "Luftdruck: " +  extractValuesfromXML("Luftdruck", "<", weather_data) + "\n";
+        //currentWeatherData += "Regen: " + extractValuesfromXML("Regen seit", "<", weather_data) + "\n";
+        currentWeatherData += extractValuesfromXML("Wind:", "<", weather_data) + "\n";
+        currentWeatherData += extractValuesfromXML("Vorhersage:", "<", weather_data) + "\n";
 
-        if (httpCode == HTTP_CODE_OK)
-        {
-          payload = httpCommunicator.getString(); // Save Webpage Content
+        Serial.println(currentWeatherData); // Serial Output of current weather conditions
 
-          // Serial.println("###Wetterdaten Start###");
-          // Serial.println(payload);
-          // Serial.println("###Wetterdaten Ende###");
-
-          // Extract WeatherValues from WebpageContent
-          currentWeatherData += extractValuesfromXML("Temperatur:", "<", payload) + "\n";
-          currentWeatherData += extractValuesfromXML("Taupunkt", ";", payload) + "\n";
-          currentWeatherData += extractValuesfromXML("Luftdruck", "<", payload) + "\n";
-          currentWeatherData += "Regen: " + extractValuesfromXML("Regen seit", "<", payload) + "\n";
-          currentWeatherData += extractValuesfromXML("Wind:", "<", payload) + "\n";
-          currentWeatherData += extractValuesfromXML("Vorhersage:", "<", payload) + "\n";
-
-          Serial.println(currentWeatherData); // Serial Output of current weather conditions
-
-          bot.sendMessage(chat_id, "Test2", "");
-          bot.sendMessage(chat_id, currentWeatherData, "");
-        }
-        else
-        {
-          // HTTP-Error
-          String error_return = httpCommunicator.errorToString(httpCode);
-          Serial.println("Http-Error: " + String(httpCode) + " " + error_return);
-
-          bot.sendMessage(chat_id, "HTTP Error: " + String(httpCode) + " " + error_return + " Wetterdaten konnten nicht abgefragt werden \n", "");
-        }
-        httpCommunicator.end(); // Close Connection
-        Serial.println("HTTP Connection Closed.");
+        bot.sendMessage(chat_id, currentWeatherData, "");
       }
       else
       {
-        Serial.printf("HTTP-Verbindung konnte nicht hergestellt werden!");
-        bot.sendMessage(chat_id, "HTTP-Verbindung konnte nicht hergestellt werden! \n", "");
+        bot.sendMessage(chat_id, " Wetterdaten konnten nicht abgefragt werden \n", "");
       }
-
       Serial.println("Ende Wetter!");
+      bot.sendMessage(chat_id, "Ende Wetter", "");
     }
   }
 }
