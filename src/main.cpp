@@ -172,6 +172,7 @@ void handleNewRequests(int numNewRequests)
         currentWeatherData += extractValuesfromXML("Temperatur:", "<", weather_data) + "\n";
         currentWeatherData += extractValuesfromXML("Taupunkt", ";", weather_data) + "\n";
         currentWeatherData += "Luftdruck: " + extractValuesfromXML("Luftdruck", "<", weather_data) + "\n";
+        currentWeatherData += extractValuesfromXML("Sonne:", "<", weather_data) + "\n";
         currentWeatherData += "Regen: " + extractValuesfromXML("Regen seit", "<", weather_data) + "\n";
         currentWeatherData += extractValuesfromXML("Wind:", "<", weather_data) + "\n";
         currentWeatherData += extractValuesfromXML("Vorhersage:", "<", weather_data) + "\n";
