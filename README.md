@@ -17,4 +17,4 @@ This programm implements a TelegramBot on ans NodeMCU ESP8266.
 
 **Thanks to:**
 
-Thanks to Gerhard Rabitsch (https://aktuell.mannheim-wetter.info) for the weather data.
+Thanks to mannheim-wetter.info (https://aktuell.mannheim-wetter.info) for the weather data.
