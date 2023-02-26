@@ -9,7 +9,8 @@
 WiFiClientSecure client;
 UniversalTelegramBot bot(botToken, client);
 
-String url_wetter = "https://aktuell.mannheim-wetter.info/rss3.xml"; // URL Wetter-Abfrage
+String url_weather_values = "https://aktuell.mannheim-wetter.info/rss3.xml"; //URL Weather - Current Values
+String url_weather_forecast="https://wetterstationen.meteomedia.de/messnetz/vorhersagegrafik/107300.png"; //URL Weather Forecast
 
 // Variable für das Licht
 const int lightPin = LED_BUILTIN; // Am ESP8266 Pin D5
@@ -27,7 +28,6 @@ String from_name = "";
 // Variable für die Willkommensnachricht
 String welcome = "";
 
-
 /// @brief Extracts Values from an XML File
 /// @param searchStringStart Paramenter you search for
 /// @param searchStringEnd End Char or End Sign of the Search
@@ -42,12 +42,13 @@ String extractValuesfromXML(String searchStringStart, String searchStringEnd, St
 }
 
 /// @brief Gets weatherdate from a webpage
-/// @param weburl 
+/// @param weburl
 /// @return Weather Data as XML
 String GetWeatherData(String weburl)
 {
   HTTPClient httpCommunicator;
   String payload = "";
+
   if (httpCommunicator.begin(client, weburl))
   {
     int httpCode = httpCommunicator.GET(); // HTTP-Code der Response speichern
@@ -56,10 +57,10 @@ String GetWeatherData(String weburl)
     {
       payload = httpCommunicator.getString(); // Save Webpage Content
 
-      // Serial.println("###Wetterdaten Start###");
-      // Serial.println(payload);
-      // Serial.println("###Wetterdaten Ende###");
-
+      // Debug
+      //  Serial.println("###Wetterdaten Start###");
+      //  Serial.println(payload);
+      //  Serial.println("###Wetterdaten Ende###");
 
       return payload;
     }
@@ -84,7 +85,7 @@ String GetWeatherData(String weburl)
 }
 
 /// @brief Manages new TelegramBot request.
-/// @param numNewRequests 
+/// @param numNewRequests
 void handleNewRequests(int numNewRequests)
 {
 
@@ -148,21 +149,23 @@ void handleNewRequests(int numNewRequests)
       String currentWeatherData = "Aktuelle Werte: \n";
       String weather_data;
 
-      weather_data = GetWeatherData(url_wetter);
+      weather_data = GetWeatherData(url_weather_values);
 
       if (weather_data != String(EXIT_FAILURE))
       {
         // Extract WeatherValues from WebpageContent
-        //currentWeatherData += extractValuesfromXML("Temperatur:", "<", weather_data) + "\n";
-        //currentWeatherData += extractValuesfromXML("Taupunkt", ";", weather_data) + "\n";
-        currentWeatherData += "Luftdruck: " +  extractValuesfromXML("Luftdruck", "<", weather_data) + "\n";
-        //currentWeatherData += "Regen: " + extractValuesfromXML("Regen seit", "<", weather_data) + "\n";
+        currentWeatherData += extractValuesfromXML("Temperatur:", "<", weather_data) + "\n";
+        currentWeatherData += extractValuesfromXML("Taupunkt", ";", weather_data) + "\n";
+        currentWeatherData += "Luftdruck: " + extractValuesfromXML("Luftdruck", "<", weather_data) + "\n";
+        currentWeatherData += "Regen: " + extractValuesfromXML("Regen seit", "<", weather_data) + "\n";
         currentWeatherData += extractValuesfromXML("Wind:", "<", weather_data) + "\n";
         currentWeatherData += extractValuesfromXML("Vorhersage:", "<", weather_data) + "\n";
 
         Serial.println(currentWeatherData); // Serial Output of current weather conditions
 
         bot.sendMessage(chat_id, currentWeatherData, "");
+
+        bot.sendMessage(chat_id, url_weather_forecast, ""); //Weather Forecast
       }
       else
       {
@@ -174,7 +177,7 @@ void handleNewRequests(int numNewRequests)
   }
 }
 
-/// @brief Connect to a Wifi Network. It is possible to save more than one Wifi Network for different locations. 
+/// @brief Connect to a Wifi Network. It is possible to save more than one Wifi Network for different locations.
 void connect2Wifi()
 {
   while (WiFi.status() != WL_CONNECTED)
@@ -204,23 +207,22 @@ void connect2Wifi()
 void setup()
 {
 
-  Serial.begin(115200); //Serial Console
+  Serial.begin(115200); // Serial Console
   client.setInsecure();
 
-  pinMode(lightPin, OUTPUT); //NodeMCU: Internal LED
-  digitalWrite(lightPin, lightState); //Set internale LED
+  pinMode(lightPin, OUTPUT);          // NodeMCU: Internal LED
+  digitalWrite(lightPin, lightState); // Set internale LED
 
-  connect2Wifi(); //Connect to Wifi
+  connect2Wifi(); // Connect to Wifi
 }
-
 
 /// @brief Loop
 void loop()
 {
-    int numNewRequests = bot.getUpdates(bot.last_message_received + 1); //Check is there a new Request at the TelegramBot
+  int numNewRequests = bot.getUpdates(bot.last_message_received + 1); // Check is there a new Request at the TelegramBot
 
-  while (numNewRequests) //If there is a new TelegramBot request, else do nothing.
-  { 
+  while (numNewRequests) // If there is a new TelegramBot request, else do nothing.
+  {
     Serial.println("Anfrage erhalten");
     handleNewRequests(numNewRequests);
     numNewRequests = bot.getUpdates(bot.last_message_received + 1);
