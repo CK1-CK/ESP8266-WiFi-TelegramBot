@@ -1,6 +1,6 @@
 //Readme
-//Datei umbenennen _example entfernen
-//SSID und PW des WLAN einpflegen
+//Rename Filename --> remove _example
+//Add Wifi SSID & PW
 
 // WiFi-Credentials
 String ssids[] = {"SSID1", "SSID2", "SSID3"};
