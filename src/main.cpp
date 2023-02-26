@@ -27,6 +27,12 @@ String from_name = "";
 // Variable für die Willkommensnachricht
 String welcome = "";
 
+
+/// @brief Extracts Values from an XML File
+/// @param searchStringStart Paramenter you search for
+/// @param searchStringEnd End Char or End Sign of the Search
+/// @param sourceString XML Source
+/// @return Exctracted Value
 String extractValuesfromXML(String searchStringStart, String searchStringEnd, String sourceString)
 {
   int startIndex = sourceString.indexOf(searchStringStart);
@@ -35,6 +41,9 @@ String extractValuesfromXML(String searchStringStart, String searchStringEnd, St
   return sourceString.substring(startIndex, endIndex);
 }
 
+/// @brief Gets weatherdate from a webpage
+/// @param weburl 
+/// @return Weather Data as XML
 String GetWeatherData(String weburl)
 {
   HTTPClient httpCommunicator;
@@ -74,7 +83,8 @@ String GetWeatherData(String weburl)
   return String(EXIT_FAILURE);
 }
 
-// Funktion fürs Verarbeiten neuer Anfragen
+/// @brief Manages new TelegramBot request.
+/// @param numNewRequests 
 void handleNewRequests(int numNewRequests)
 {
 
@@ -164,6 +174,7 @@ void handleNewRequests(int numNewRequests)
   }
 }
 
+/// @brief Connect to a Wifi Network. It is possible to save more than one Wifi Network for different locations. 
 void connect2Wifi()
 {
   while (WiFi.status() != WL_CONNECTED)
@@ -189,25 +200,25 @@ void connect2Wifi()
   Serial.println(WiFi.localIP());
 }
 
+/// @brief NodeMCU Setup Routine
 void setup()
 {
 
-  Serial.begin(115200);
+  Serial.begin(115200); //Serial Console
   client.setInsecure();
 
-  pinMode(lightPin, OUTPUT);
-  digitalWrite(lightPin, lightState);
+  pinMode(lightPin, OUTPUT); //NodeMCU: Internal LED
+  digitalWrite(lightPin, lightState); //Set internale LED
 
-  connect2Wifi();
+  connect2Wifi(); //Connect to Wifi
 }
 
 void loop()
 {
-  // checkt, ob eine neue Anfrage reinkam
-  int numNewRequests = bot.getUpdates(bot.last_message_received + 1);
+    int numNewRequests = bot.getUpdates(bot.last_message_received + 1); //Check is there a new Request at the TelegramBot
 
-  while (numNewRequests)
-  { // wird ausgeführt, wenn numNewRequests == 1
+  while (numNewRequests) //If there is a new TelegramBot request, else do nothing.
+  { 
     Serial.println("Anfrage erhalten");
     handleNewRequests(numNewRequests);
     numNewRequests = bot.getUpdates(bot.last_message_received + 1);
