@@ -1,16 +1,20 @@
 // Bibliotheken
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 #include <WiFi-Telegram-credentials.h>
 
 WiFiClientSecure client;
 UniversalTelegramBot bot(botToken, client);
+HTTPClient httpCommunicator;
+
+String url_wetter = "https://aktuell.mannheim-wetter.info/rss3.xml"; // URL Wetter-Abfrage
 
 // Variable für das Licht
-const int lightPin = 14; // Am ESP8266 Pin D5
-bool lightState = LOW;
+const int lightPin = LED_BUILTIN; // Am ESP8266 Pin D5
+bool lightState = HIGH;           // High = LED Light on  | Low= LED Light off
 
 // Variable für die Anzahl der Anfragen
 int numNewRequests;
@@ -23,6 +27,14 @@ String chat_id = "";
 String from_name = "";
 // Variable für die Willkommensnachricht
 String welcome = "";
+
+String extractValuesfromXML(String searchStringStart, String searchStringEnd, String sourceString)
+{
+  int startIndex = sourceString.indexOf(searchStringStart);
+  int endIndex = sourceString.indexOf(searchStringEnd, startIndex);
+
+  return sourceString.substring(startIndex, endIndex);
+}
 
 // Funktion fürs Verarbeiten neuer Anfragen
 void handleNewRequests(int numNewRequests)
@@ -52,26 +64,27 @@ void handleNewRequests(int numNewRequests)
       welcome += "/lichtEin \n";
       welcome += "/lichtAus \n";
       welcome += "/status \n";
+      welcome += "/wetter \n";
       bot.sendMessage(chat_id, welcome, "");
     }
 
     if (text == "/lichtEin")
     {
-      lightState = HIGH;
-      digitalWrite(14, lightState);
+      lightState = LOW;
+      digitalWrite(lightPin, lightState);
       bot.sendMessage(chat_id, "Das Licht ist an.", "");
     }
 
     if (text == "/lichtAus")
     {
-      lightState = LOW;
-      digitalWrite(14, lightState);
+      lightState = HIGH;
+      digitalWrite(lightPin, lightState);
       bot.sendMessage(chat_id, "Das Licht ist aus.", "");
     }
 
     if (text == "/status")
     {
-      if (digitalRead(lightPin))
+      if (!digitalRead(lightPin))
       {
         bot.sendMessage(chat_id, "Das Licht ist an.", "");
       }
@@ -80,7 +93,82 @@ void handleNewRequests(int numNewRequests)
         bot.sendMessage(chat_id, "Das Licht ist aus.", "");
       }
     }
+
+    if (text == "/wetter")
+    {
+      String payload = "";
+      String currentWeatherData = "Aktuelle Werte: \n";
+
+      if (httpCommunicator.begin(client, url_wetter))
+      {
+        int httpCode = httpCommunicator.GET(); // HTTP-Code der Response speichern
+
+        if (httpCode == HTTP_CODE_OK)
+        {
+          payload = httpCommunicator.getString(); // Save Webpage Content
+
+          // Serial.println("###Wetterdaten Start###");
+          // Serial.println(payload);
+          // Serial.println("###Wetterdaten Ende###");
+
+          // Extract WeatherValues from WebpageContent
+          currentWeatherData += extractValuesfromXML("Temperatur:", "<", payload) + "\n";
+          currentWeatherData += extractValuesfromXML("Taupunkt", ";", payload) + "\n";
+          currentWeatherData += extractValuesfromXML("Luftdruck", "<", payload) + "\n";
+          currentWeatherData += "Regen: " + extractValuesfromXML("Regen seit", "<", payload) + "\n";
+          currentWeatherData += extractValuesfromXML("Wind:", "<", payload) + "\n";
+          currentWeatherData += extractValuesfromXML("Vorhersage:", "<", payload) + "\n";
+
+          Serial.println(currentWeatherData); // Serial Output of current weather conditions
+
+          bot.sendMessage(chat_id, "Test2", "");
+          bot.sendMessage(chat_id, currentWeatherData, "");
+        }
+        else
+        {
+          // HTTP-Error
+          String error_return = httpCommunicator.errorToString(httpCode);
+          Serial.println("Http-Error: " + String(httpCode) + " " + error_return);
+
+          bot.sendMessage(chat_id, "HTTP Error: " + String(httpCode) + " " + error_return + " Wetterdaten konnten nicht abgefragt werden \n", "");
+        }
+        httpCommunicator.end(); // Close Connection
+        Serial.println("HTTP Connection Closed.");
+      }
+      else
+      {
+        Serial.printf("HTTP-Verbindung konnte nicht hergestellt werden!");
+        bot.sendMessage(chat_id, "HTTP-Verbindung konnte nicht hergestellt werden! \n", "");
+      }
+
+      Serial.println("Ende Wetter!");
+    }
   }
+}
+
+void connect2Wifi()
+{
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    for (unsigned int i = 0; i < ssids->length(); i++)
+    {
+      // Verbindung zum WLAN
+      Serial.print("Verbinde mich mit: ");
+      Serial.println(ssids[i]);
+
+      WiFi.begin(ssids[i], passwords[i]);
+
+      delay(10000);
+
+      if (WiFi.status() == WL_CONNECTED)
+        break;
+
+      Serial.println("Verbindung nicht erfolgreich!");
+      Serial.println("-----------------------------");
+    }
+  }
+  Serial.println("Verbunden! IP-Adresse: ");
+  Serial.println(WiFi.localIP());
 }
 
 void setup()
@@ -92,19 +180,7 @@ void setup()
   pinMode(lightPin, OUTPUT);
   digitalWrite(lightPin, lightState);
 
-  // Verbindung zum WLAN
-  Serial.print("Verbinde mich mit: ");
-  Serial.println(ssid);
-
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED)
-  {
-    Serial.print(".");
-    delay(300);
-  }
-  Serial.println("");
-  Serial.println("Verbunden!");
+  connect2Wifi();
 }
 
 void loop()
