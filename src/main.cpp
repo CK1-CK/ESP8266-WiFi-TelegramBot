@@ -213,6 +213,8 @@ void setup()
   connect2Wifi(); //Connect to Wifi
 }
 
+
+/// @brief Loop
 void loop()
 {
     int numNewRequests = bot.getUpdates(bot.last_message_received + 1); //Check is there a new Request at the TelegramBot
