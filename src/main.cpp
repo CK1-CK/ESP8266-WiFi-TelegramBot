@@ -9,8 +9,8 @@
 WiFiClientSecure client;
 UniversalTelegramBot bot(botToken, client);
 
-String url_weather_values = "https://aktuell.mannheim-wetter.info/rss3.xml"; //URL Weather - Current Values
-String url_weather_forecast="https://wetterstationen.meteomedia.de/messnetz/vorhersagegrafik/107300.png"; //URL Weather Forecast
+String url_weather_values = "https://aktuell.mannheim-wetter.info/rss3.xml";                                // URL Weather - Current Values
+String url_weather_forecast = "https://wetterstationen.meteomedia.de/messnetz/vorhersagegrafik/107300.png"; // URL Weather Forecast
 
 // Variable für das Licht
 const int lightPin = LED_BUILTIN; // Am ESP8266 Pin D5
@@ -68,20 +68,34 @@ String GetWeatherData(String weburl)
     {
       // HTTP-Error
       String error_return = httpCommunicator.errorToString(httpCode);
-      Serial.println("Http-Error: " + String(httpCode) + " " + error_return);
-
-      // bot.sendMessage(chat_id, "HTTP Error: " + String(httpCode) + " " + error_return + " Wetterdaten konnten nicht abgefragt werden \n", "");
+      Serial.println("Http-Error: " + String(httpCode) + " " + error_return); // HTTP Error
     }
     httpCommunicator.end(); // Close Connection
-    Serial.println("HTTP Connection Closed.");
+    // Serial.println("HTTP Connection Closed.");
   }
   else
   {
-    Serial.printf("HTTP-Verbindung konnte nicht hergestellt werden!");
-    // bot.sendMessage(chat_id, "HTTP-Verbindung konnte nicht hergestellt werden! \n", "");
+    Serial.printf("HTTP-Verbindung konnte nicht hergestellt werden!"); // Error: No connection
   }
 
   return String(EXIT_FAILURE);
+}
+
+/// @brief Sends a message to Telegram Bot. Uses the global chat_id
+/// @param text Message Text
+/// @return Success/No Success
+bool sendMessage2TelegramBot(String text)
+{
+  return bot.sendMessage(chat_id, text, ""); // Send Message to TelegramBot
+}
+
+/// @brief Sends a message to Telegram Bot
+/// @param text Message Text
+/// @param chatid ChatBot Token ID
+/// @return Success/No Success
+bool sendMessage2TelegramBot(String text, String chatid)
+{
+  return bot.sendMessage(chatid, text, ""); // Send Message to TelegramBot
 }
 
 /// @brief Manages new TelegramBot request.
@@ -96,7 +110,7 @@ void handleNewRequests(int numNewRequests)
     chat_id = String(bot.messages[i].chat_id);
     if (chat_id != userID)
     {
-      bot.sendMessage(chat_id, "Du bist nicht autorisiert!", "");
+      sendMessage2TelegramBot("Du bist nicht autorisiert!");
       continue;
     }
 
@@ -114,32 +128,33 @@ void handleNewRequests(int numNewRequests)
       welcome += "/lichtAus \n";
       welcome += "/status \n";
       welcome += "/wetter \n";
-      bot.sendMessage(chat_id, welcome, "");
+
+      sendMessage2TelegramBot(welcome);
     }
 
     if (text == "/lichtEin")
     {
       lightState = LOW;
       digitalWrite(lightPin, lightState);
-      bot.sendMessage(chat_id, "Das Licht ist an.", "");
+      sendMessage2TelegramBot("Das Licht ist an.");
     }
 
     if (text == "/lichtAus")
     {
       lightState = HIGH;
       digitalWrite(lightPin, lightState);
-      bot.sendMessage(chat_id, "Das Licht ist aus.", "");
+      sendMessage2TelegramBot("Das Licht ist aus.");
     }
 
     if (text == "/status")
     {
       if (!digitalRead(lightPin))
       {
-        bot.sendMessage(chat_id, "Das Licht ist an.", "");
+        sendMessage2TelegramBot("Das Licht ist an.");
       }
       else
       {
-        bot.sendMessage(chat_id, "Das Licht ist aus.", "");
+        sendMessage2TelegramBot("Das Licht ist aus.");
       }
     }
 
@@ -163,16 +178,13 @@ void handleNewRequests(int numNewRequests)
 
         Serial.println(currentWeatherData); // Serial Output of current weather conditions
 
-        bot.sendMessage(chat_id, currentWeatherData, "");
-
-        bot.sendMessage(chat_id, url_weather_forecast, ""); //Weather Forecast
+        sendMessage2TelegramBot(currentWeatherData);   // Send waether values to TelegramBot
+        sendMessage2TelegramBot(url_weather_forecast); // Weather Forecast to TelegramBot
       }
       else
       {
-        bot.sendMessage(chat_id, " Wetterdaten konnten nicht abgefragt werden \n", "");
+        sendMessage2TelegramBot("Wetterdaten konnten nicht abgefragt werden."); // Send Error Message to TelegramBot
       }
-      Serial.println("Ende Wetter!");
-      bot.sendMessage(chat_id, "Ende Wetter", "");
     }
   }
 }
